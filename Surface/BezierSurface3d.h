@@ -51,6 +51,12 @@ namespace MN {
 
 		Ptr subdivide(const Domain& uSubdomain, const Domain& vSubdomain) const;
 
+		static ControlPoints degreeElevation(int dir, const ControlPoints& cpts);
+
+		Vec2 projection(Vec3 xyz);
+
+		Vec2 projection(Vec3 xyz, Vec2 initialGuess);
+		
 		inline const ControlPoints& getDerivMatU() const noexcept {
 			return derivMatU;
 		}

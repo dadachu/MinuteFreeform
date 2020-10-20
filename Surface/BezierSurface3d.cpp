@@ -7,7 +7,7 @@
  */
 
 #include "BezierSurface3d.h"
-
+#include "Eigen/Dense"
 namespace MN {
 	void BezierSurface3d::subdivideCpts(const std::vector<Vec3>& cpts, Real t, std::vector<Vec3>& lower, std::vector<Vec3>& upper) {
 		// De Casteljou's algorithm
@@ -93,6 +93,136 @@ namespace MN {
 		lower.updateDerivMat();
 		return std::make_shared<BezierSurface3d>(lower);
 	}
+
+	Freeform3ds::ControlPoints BezierSurface3d::degreeElevation(int dir, const ControlPoints& cpts)
+	{
+		ControlPoints newCpts;
+		newCpts.clear();
+		if (dir == 1) // v
+		{
+			for (int i = 0; i < cpts.size(); i++) {
+				std::vector<MN::Vec3> line;
+				for (int j = 0; j < cpts[0].size(); j++)
+					line.push_back(cpts[i][j]);
+
+				std::vector<Vec3> newLine;
+				newLine.push_back(line[0]);
+				for (int j = 1; j < line.size(); j++)
+				{
+					double u = double(j) / double(line.size() + 1);
+					newLine.push_back(line[j - 1] * u + line[j] * (1.0 - u));
+				}
+				newLine.push_back(line[line.size() - 1]);
+				newCpts.push_back(newLine);
+			}
+		}
+		else // u
+		{
+
+			newCpts.resize(cpts.size() + 1);
+			for (int i = 0; i < cpts.size() + 1; i++)
+				newCpts[i].resize(cpts[0].size());
+			for (int i = 0; i < cpts[0].size(); i++)
+			{
+				std::vector<Vec3> line;
+				for (int j = 0; j < cpts.size(); j++)
+					line.push_back(cpts[j][i]);
+
+				std::vector<Vec3> newLine;
+				newLine.push_back(line[0]);
+				for (int j = 1; j < line.size(); j++)
+				{
+					double u = double(j) / double(line.size() + 1);
+					newLine.push_back(line[j - 1] * u + line[j] * (1.0 - u));
+				}
+				newLine.push_back(line[line.size() - 1]);
+
+				for (int j = 0; j < newLine.size(); j++)
+					newCpts[j][i] = newLine[j];
+			}
+
+
+		}
+		return newCpts;
+		ControlPoints vCpts;
+		vCpts.resize(cpts.size());
+		for (int i = 0; i < vCpts.size(); i++)
+			vCpts[i].resize(cpts[i].size() + 1);
+		for (int i = 0; i < cpts.size(); i++)
+		{
+			vCpts[i][0] = cpts[i][0];
+			for (int j = 1; j < cpts[i].size(); j++)
+			{
+				double u = double(j) / double(cpts.size() + 1);
+				vCpts[i][j] = cpts[i][j - 1] * u + cpts[i][j] * (1.0 - u);
+			}
+			vCpts[i][vCpts[i].size() - 1] = cpts[i][cpts[i].size() - 1];
+		}
+
+		ControlPoints nCpts;
+		nCpts.resize(cpts.size() + 1);
+		for (int i = 0; i < cpts.size() + 1; i++)
+			nCpts[i].resize(cpts.size() + 1);
+		for (int i = 0; i < nCpts.size(); i++)
+		{
+			nCpts[0][i] = vCpts[0][i];
+			for (int j = 1; j < vCpts.size(); j++)
+			{
+				double u = double(j) / double(cpts.size() + 1);
+				nCpts[j][i] = vCpts[j - 1][i] * u + vCpts[j][i] * (1.0 - u);
+			}
+			nCpts[nCpts.size() - 1][i] = vCpts[vCpts.size() - 1][i];
+		}
+
+		return nCpts;
+
+	}
+
+	Vec2 BezierSurface3d::projection(Vec3 xyz)
+	{
+		int RES = 100;
+		double minDist = 1E+10;
+		Vec2 minUV;
+		for (int i = 0; i <= RES; i++)
+		{
+			double u = double(i) / double(RES);
+			for (int j = 0; j <= RES; j++)
+			{
+				double v = double(j) / double(RES);
+				auto pt = evaluate(u, v);
+				if (xyz.dist(pt) < minDist)
+				{
+					minUV[0] = u;
+					minUV[1] = v;
+					minDist = xyz.dist(pt);
+				}
+			}
+		}
+		return projection(xyz, minUV);
+	}
+
+	Vec2 BezierSurface3d::projection(Vec3 xyz, Vec2 initialGuess)
+	{
+		Vec2 uv = initialGuess;
+		for (int i = 0; i < 10; i++) { //MAGIC NUMBER 100
+			Vec3 p0 = evaluate(uv[0], uv[1]);
+			Vec3 p0_norm = normal(uv[0], uv[1]);
+			Vec3 q = xyz - (p0_norm) * ((xyz - p0).dot(p0_norm));
+			Vec3 Su = differentiate(uv[0], uv[1], 1, 0);
+			Vec3 Sv = differentiate(uv[0], uv[1], 0, 1);
+			Eigen::Matrix2d A;
+			Eigen::Vector2d B, X;
+			A << Su.dot(Su), Su.dot(Sv), Su.dot(Sv), Sv.dot(Sv);
+			B << (q - p0).dot(Su),(q - p0).dot(Sv);
+			X = A.colPivHouseholderQr().solve(B);
+			double delta_u = X[0];
+			double delta_v = X[1];
+			uv[0] += delta_u;
+			uv[1] += delta_v;
+		}
+		return uv;
+	}
+
 	BezierSurface3d BezierSurface3d::create(int uDegree, int vDegree, const ControlPoints& cpts, bool buildMat) {
 		BezierSurface3d surface;
 		surface.setDomain(0, Domain::create(0, 1));
