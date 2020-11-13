@@ -55,6 +55,7 @@ namespace MN {
 		}
 		lower = BezierSurface3d::create(uDegree, vDegree, lowerCpts, false);
 		upper = BezierSurface3d::create(uDegree, vDegree, upperCpts, false);
+
 	}
 	void BezierSurface3d::vSubdivide(Real v, BezierSurface3d& lower, BezierSurface3d& upper) const {
 		ControlPoints lowerCpts = cpts;
@@ -91,6 +92,16 @@ namespace MN {
 		upper.vSubdivide(t, lower, upper);			// lower
 
 		lower.updateDerivMat();
+
+		//bspMinMax Deal
+		Vec2 newbspMin, newbspMax;
+		newbspMin[0] = bspMin[0] + (bspMax[0] - bspMin[0])*uSubdomain.beg();
+		newbspMax[0] = bspMin[0] + (bspMax[0] - bspMin[0])*uSubdomain.end();
+		newbspMin[1] = bspMin[1] + (bspMax[1] - bspMin[1])*vSubdomain.beg();
+		newbspMax[1] = bspMin[1] + (bspMax[1] - bspMin[1])*vSubdomain.end();
+		lower.bspMin = newbspMin;
+		lower.bspMax = newbspMax;
+		
 		return std::make_shared<BezierSurface3d>(lower);
 	}
 
@@ -201,10 +212,10 @@ namespace MN {
 		return projection(xyz, minUV);
 	}
 
-	Vec2 BezierSurface3d::projection(Vec3 xyz, Vec2 initialGuess)
+	Vec2 BezierSurface3d::projection(Vec3 xyz, Vec2 initialGuess,double stopEPS)
 	{
 		Vec2 uv = initialGuess;
-		for (int i = 0; i < 10; i++) { //MAGIC NUMBER 100
+		for (int i = 0; i < 100; i++) { //MAGIC NUMBER 100
 			Vec3 p0 = evaluate(uv[0], uv[1]);
 			Vec3 p0_norm = normal(uv[0], uv[1]);
 			Vec3 q = xyz - (p0_norm) * ((xyz - p0).dot(p0_norm));
@@ -217,11 +228,27 @@ namespace MN {
 			X = A.colPivHouseholderQr().solve(B);
 			double delta_u = X[0];
 			double delta_v = X[1];
+			if(abs(delta_u)<stopEPS && abs(delta_v)<stopEPS)
+				break;
 			uv[0] += delta_u;
 			uv[1] += delta_v;
 		}
 		return uv;
 	}
+
+	Vec2 BezierSurface3d::BezUVtoBspUV(Vec2 bezUV)
+	{
+		double u = bezUV[0];
+		double v = bezUV[1];
+		u = bspMin[0] + (u) * (bspMax[0] - bspMin[0]);
+		v = bspMin[1] + (v) * (bspMax[1] - bspMin[1]);
+		return {u,v};
+	}
+
+	// bool BezierSurface3d::isSelfIntersectionFree(Domain uDomain, Domain vDomain)
+	// {
+	// 	
+	// }
 
 	BezierSurface3d BezierSurface3d::create(int uDegree, int vDegree, const ControlPoints& cpts, bool buildMat) {
 		BezierSurface3d surface;

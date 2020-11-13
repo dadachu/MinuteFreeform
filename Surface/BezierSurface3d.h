@@ -41,6 +41,8 @@ namespace MN {
 		using Ptr = std::shared_ptr<BezierSurface3d>;
 		const static Binomial binomial;
 
+		Vec2 bspMin, bspMax;
+		
 		// @buildMat : Option for building derivMats in creation time
 		static BezierSurface3d create(int uDegree, int vDegree, const ControlPoints& cpts, bool buildMat = true);
 		static Ptr createPtr(int uDegree, int vDegree, const ControlPoints& cpts, bool buildMat = true);
@@ -55,7 +57,11 @@ namespace MN {
 
 		Vec2 projection(Vec3 xyz);
 
-		Vec2 projection(Vec3 xyz, Vec2 initialGuess);
+		Vec2 projection(Vec3 xyz, Vec2 initialGuess,double stopEPS=1E-20);
+
+		Vec2 BezUVtoBspUV(Vec2 bezUV);
+
+		// bool isSelfIntersectionFree(Domain uDomain, Domain vDomain);
 		
 		inline const ControlPoints& getDerivMatU() const noexcept {
 			return derivMatU;
