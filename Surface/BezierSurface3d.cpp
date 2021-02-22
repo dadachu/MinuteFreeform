@@ -358,6 +358,71 @@ namespace MN {
 				}
 			}
 		}
+		if(uDegree>3)
+		{
+			// derivMatUUUU
+			derivMatUUUU.resize(rowNum - 4);
+			for(int i = 0; i < rowNum - 4; i++)
+			{
+				derivMatUUUU[i].resize(colNum);
+				for(int j = 0; j < colNum; j++)
+				{
+					derivMatUUUU[i][j] = (derivMatUUU[i + 1][j] - derivMatUUU[i][j]) * (uDegree - 3);
+				}
+			}
+		}
+		if(uDegree > 2 && vDegree > 0)
+		{
+			// derivMatUUUV
+			derivMatUUUV.resize(rowNum - 3);
+			for(int i = 0; i < rowNum - 3; i++)
+			{
+				derivMatUUUV[i].resize(colNum - 1);
+				for(int j = 0; j < colNum - 1; j++)
+				{
+					derivMatUUUV[i][j] = (derivMatUUU[i][j+1] - derivMatUUU[i][j]) * (vDegree);
+				}
+			}
+		}
+		if(uDegree > 1 && vDegree > 1)
+		{
+			// derivMatUUVV
+			derivMatUUVV.resize(rowNum - 2);
+			for(int i = 0; i < rowNum - 2; i++)
+			{
+				derivMatUUVV[i].resize(colNum - 2);
+				for(int j = 0; j < colNum - 2; j++)
+				{
+					derivMatUUVV[i][j] = (derivMatUVV[i+1][j] - derivMatUVV[i][j]) * (uDegree - 1);
+				}
+			}
+		}
+		if(uDegree > 0 && vDegree > 2)
+		{
+			// derivMatUVVV
+			derivMatUVVV.resize(rowNum - 1);
+			for(int i = 0; i < rowNum - 1; i++)
+			{
+				derivMatUVVV[i].resize(colNum - 3);
+				for(int j = 0; j < colNum - 3; j++)
+				{
+					derivMatUVVV[i][j] = (derivMatVVV[i+1][j] - derivMatVVV[i][j]) * (uDegree);
+				}
+			}
+		}
+		if(vDegree > 3)
+		{
+			// derivMatVVVV
+			derivMatVVVV.resize(rowNum);
+			for(int i = 0; i < rowNum; i++)
+			{
+				derivMatVVVV[i].resize(colNum - 4);
+				for(int j = 0; j < colNum - 4; j++)
+				{
+					derivMatVVVV[i][j] = (derivMatVVV[i][j + 1] - derivMatVVV[i][j]) * (vDegree - 3);
+				}
+			}
+		}
 	}
 	Vec3 BezierSurface3d::evaluate(Real u, Real v) const {
 		BasisVector uBasis, vBasis;
@@ -414,7 +479,37 @@ namespace MN {
 			Bezier::calBasisVector(v, vDegree - 3, vBasis);
 			return tensorProduct(uBasis, derivMatVVV, vBasis);
 		}
+		else if(uOrder == 4 && vOrder == 0)
+		{
+			Bezier::calBasisVector(u, uDegree - 4, uBasis);
+			Bezier::calBasisVector(v, vDegree, vBasis);
+			return tensorProduct(uBasis, derivMatUUUU, vBasis);
+		}
+		else if(uOrder == 3 && vOrder == 1)
+		{
+			Bezier::calBasisVector(u, uDegree - 3, uBasis);
+			Bezier::calBasisVector(v, vDegree - 1, vBasis);
+			return tensorProduct(uBasis, derivMatUUUV, vBasis);
+		}
+		else if(uOrder == 2 && vOrder == 2)
+		{
+			Bezier::calBasisVector(u, uDegree - 2, uBasis);
+			Bezier::calBasisVector(v, vDegree - 2, vBasis);
+			return tensorProduct(uBasis, derivMatUUVV, vBasis);
+		}
+		else if(uOrder == 1 && vOrder == 3)
+		{
+			Bezier::calBasisVector(u, uDegree - 1, uBasis);
+			Bezier::calBasisVector(v, vDegree - 3, vBasis);
+			return tensorProduct(uBasis, derivMatUVVV, vBasis);
+		}
+		else if(uOrder == 0 && vOrder == 4)
+		{
+			Bezier::calBasisVector(u, uDegree, uBasis);
+			Bezier::calBasisVector(v, vDegree - 4, vBasis);
+			return tensorProduct(uBasis, derivMatVVVV, vBasis);
+		}
 		else
-			throw(std::runtime_error("Bezier surface differentiation is only allowed up to 2nd derivatives"));
+			throw(std::runtime_error("Bezier surface differentiation is only allowed up to 3nd derivatives"));
 	}
 }

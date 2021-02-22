@@ -33,7 +33,12 @@ namespace MN {
 		ControlPoints derivMatUUV;
 		ControlPoints derivMatUVV;
 		ControlPoints derivMatVVV;
-		
+		ControlPoints derivMatUUUU;
+		ControlPoints derivMatUUUV;
+		ControlPoints derivMatUUVV;
+		ControlPoints derivMatUVVV;
+		ControlPoints derivMatVVVV;
+
 		static void subdivideCpts(const std::vector<Vec3>& cpts, Real t, std::vector<Vec3>& lower, std::vector<Vec3>& upper);
 		void uSubdivide(Real u, BezierSurface3d& lower, BezierSurface3d& upper) const;
 		void vSubdivide(Real v, BezierSurface3d& lower, BezierSurface3d& upper) const;
