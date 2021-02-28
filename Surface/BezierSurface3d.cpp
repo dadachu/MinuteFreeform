@@ -191,7 +191,7 @@ namespace MN {
 
 	Vec2 BezierSurface3d::projection(Vec3 xyz)
 	{
-		int RES = 100;
+		int RES = 5;
 		double minDist = 1E+10;
 		Vec2 minUV;
 		for (int i = 0; i <= RES; i++)
